@@ -27,23 +27,28 @@
 import argparse
 import time
 import original_game
-import flappy_bird_gym
+import os
 import sys
-#sys.path.insert(0, '/home/gabe/miniconda3/envs/new_flappy_dqn/lib/python3.10/site-packages/gym')
+sys.path.insert(0, os.path.abspath('../'))
 
+sys.path.insert(0, os.path.abspath('../flappy_bird_gym'))
+print(os.path.abspath('./flappy_bird_gym'))
+
+import flappy_bird_gym
 import gym
+from flappy_dqn_agent import train_dqn_agent
+from flappy_dqn_rgb import train_dqn_agent_rgb
 
 
 def _get_args():
     """ Parses the command line arguments and returns them. """
     parser = argparse.ArgumentParser(description=__doc__)
-    print("Hello")
-    # Argument for the mode of execution (human or random):
+    # Argument for the mode of execution (human, random, dqn, or dqn_rgb):
     parser.add_argument(
         "--mode", "-m",
         type=str,
         default="random",
-        choices=["human", 'random'],
+        choices=["human", "random", "dqn", "dqn_rgb"],
         help="The execution mode for the game.",
     )
 
@@ -78,14 +83,16 @@ def random_agent_env():
 
 def main():
     args = _get_args()
-    print(args)
     if args.mode == "human":
         original_game.main()
     elif args.mode == "random":
         random_agent_env()
+    elif args.mode == "dqn":
+        train_dqn_agent()
+    elif args.mode == "dqn_rgb":
+        train_dqn_agent_rgb()
     else:
         print("Invalid mode!")
-
 
 
 if __name__ == '__main__':
