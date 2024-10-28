@@ -19,7 +19,7 @@ SCREEN_WIDTH = 288
 SCREEN_HEIGHT = 512
 PIPE_GAP_SIZE = 100  # gap between upper and lower part of pipe
 BASE_Y = SCREEN_HEIGHT * 0.79
-
+# ---
 # image, sound and hit-mask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 
