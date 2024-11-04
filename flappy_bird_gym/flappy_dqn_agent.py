@@ -10,15 +10,15 @@ from collections import deque
 # DQN Neural Network class
 def create_dqn(input_dim, output_dim):
     return nn.Sequential(
-        nn.Linear(input_dim, 128),
+        nn.Linear(input_dim, 256),
         nn.ReLU(),
-        nn.Linear(128, 128),
+        nn.Linear(256, 256),
         nn.ReLU(),
-        nn.Linear(128, output_dim)
+        nn.Linear(256, output_dim)
     )
 
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, learning_rate=1e-3, gamma=0.99, epsilon_start=1.0, epsilon_min=0.01, epsilon_decay=0.995):
+    def __init__(self, state_dim, action_dim, learning_rate=1e-3, gamma=0.99, epsilon_start=1.0, epsilon_min=0.01, epsilon_decay=0.9997):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = gamma
@@ -27,7 +27,7 @@ class DQNAgent:
         self.epsilon_decay = epsilon_decay
         
         # Replay buffer
-        self.replay_buffer = deque(maxlen=10000)
+        self.replay_buffer = deque(maxlen=50000)
         
         # Networks
         self.policy_net = create_dqn(state_dim, action_dim)
@@ -88,7 +88,7 @@ def train_dqn_agent():
     action_dim = env.action_space.n
 
     agent = DQNAgent(state_dim, action_dim)
-    num_episodes = 1000
+    num_episodes = 20000
     target_update_freq = 10
     batch_size = 64
 

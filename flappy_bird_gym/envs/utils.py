@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Optional
 
 from pygame import image as pyg_image
 from pygame import mixer as pyg_mixer
+from pygame import error as pyg_error
 from pygame import Rect
 from pygame.transform import flip as img_flip
 
@@ -139,7 +140,11 @@ def load_images(convert: bool = True,
 
 def load_sounds() -> Dict[str, pyg_mixer.Sound]:
     """ Loads and returns the audio assets of the game. """
-    pyg_mixer.init()
+    try:
+        pyg_mixer.init()  # Attempt to initialize audio
+    except pyg_error:
+        print("Warning: No audio device found. Continuing without sound.")
+        return {}  # Return an empty dictionary if audio is not initialized
     sounds = {}
 
     if "win" in sys.platform:
