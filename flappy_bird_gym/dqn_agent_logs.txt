@@ -1,0 +1,17 @@
+Episode 1, Total Reward: 101, Gates Cleared: 101, Epsilon: 1.0
+Episode 2, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9992502774324905
+Episode 3, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9982415391071936
+Episode 4, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9972338190983611
+Episode 5, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9962271163780073
+Episode 6, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9952214299191838
+Episode 7, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9942167586959795
+Episode 8, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9932131016835186
+Episode 9, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9922104578579609
+Episode 10, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9912088261964984
+Episode 11, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9902082056773572
+Episode 12, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9892085952797938
+Episode 13, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9882099939840947
+Episode 14, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9872124007715773
+Episode 15, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.986215814624586
+Episode 16, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9852202345264935
+Episode 17, Total Reward: 101, Gates Cleared: 101, Epsilon: 0.9842256594616974
