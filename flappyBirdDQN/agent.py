@@ -116,6 +116,7 @@ class Agent:
 
         # Train INDEFINITELY, manually stop the run when you are satisfied (or unsatisfied) with the results
         for episode in itertools.count():
+            print(f"Episode : {episode + 1}")
 
             state, _ = env.reset()  # Initialize environment. Reset returns (state,info).
             state = torch.tensor(state, dtype=torch.float, device=device) # Convert state to tensor directly on device
@@ -161,6 +162,8 @@ class Agent:
                 state = new_state
 
             # Keep track of the rewards collected per episode.
+            if not is_training:
+                print(episode_reward)
             rewards_per_episode.append(episode_reward)
 
             # Save model when new best reward is obtained.
@@ -239,4 +242,4 @@ class Agent:
 if __name__ == '__main__':
     dql = Agent("flappybird1")
     # dql.run(is_training=True)
-    dql.run(is_training=False , render=True)
+    dql.run(is_training=False)
