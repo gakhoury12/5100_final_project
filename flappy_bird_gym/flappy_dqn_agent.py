@@ -8,7 +8,6 @@ import flappy_bird_gym
 from collections import deque
 
 
-
 # DQN Neural Network class
 def create_dqn(input_dim, output_dim):
     return nn.Sequential(

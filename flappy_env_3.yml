@@ -141,4 +141,5 @@ dependencies:
       - importlib-metadata==8.5.0
       - pygame==2.0.1
       - zipp==3.20.2
+      - matplotlib
 prefix: /home/gabe/miniconda3/envs/flappy_env_2

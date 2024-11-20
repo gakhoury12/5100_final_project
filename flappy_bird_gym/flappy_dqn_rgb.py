@@ -1,9 +1,11 @@
+import os
 import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import gym
 import flappy_bird_gym
+import matplotlib.pyplot as plt
 from collections import deque
 from torch.cuda.amp import GradScaler, autocast
 
@@ -32,7 +34,7 @@ class DQNAgentRGB:
         self.epsilon = epsilon_start
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
-        self.replay_buffer = deque(maxlen=100000)  # Large replay buffer
+        self.replay_buffer = deque(maxlen=100000)
 
         # Use GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,16 +46,14 @@ class DQNAgentRGB:
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
-        self.scaler = GradScaler()  # For mixed precision training
+        self.scaler = GradScaler()
 
     def preprocess(self, state):
-        """Transform state to a tensor and move to the GPU."""
         state = torch.tensor(state, dtype=torch.float32, device=self.device).permute(2, 0, 1) / 255.0
         return torch.nn.functional.interpolate(state.unsqueeze(0), size=(84, 84)).squeeze(0)
 
     def select_action(self, state):
-        """Select an action using epsilon-greedy policy."""
-        state = self.preprocess(state).unsqueeze(0)  # Preprocess state
+        state = self.preprocess(state).unsqueeze(0)
         if random.random() < self.epsilon:
             return random.randint(0, self.action_dim - 1)
         else:
@@ -62,13 +62,11 @@ class DQNAgentRGB:
                 return torch.argmax(q_values).item()
 
     def store_transition(self, state, action, reward, next_state, done):
-        """Store transitions with preprocessed tensors."""
         state = self.preprocess(state)
         next_state = self.preprocess(next_state)
         self.replay_buffer.append((state, action, reward, next_state, done))
 
     def train(self, batch_size=256):
-        """Train the agent."""
         if len(self.replay_buffer) < batch_size:
             return
 
@@ -81,7 +79,7 @@ class DQNAgentRGB:
         next_states = torch.stack(next_states).to(self.device)
         dones = torch.tensor(dones, dtype=torch.float32, device=self.device)
 
-        with autocast():  # Mixed precision training
+        with autocast():
             current_q_values = self.policy_net(states).gather(1, actions.view(-1, 1)).squeeze()
             next_q_values = self.target_net(next_states).max(1)[0]
             target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
@@ -97,14 +95,23 @@ class DQNAgentRGB:
     def update_target_network(self):
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
+    def save_model(self, folder_path="models"):
+        os.makedirs(folder_path, exist_ok=True)
+        torch.save(self.policy_net.state_dict(), os.path.join(folder_path, "policy_net.pth"))
+        torch.save(self.target_net.state_dict(), os.path.join(folder_path, "target_net.pth"))
+        print(f"Models saved in folder: {folder_path}")
 
-def train_dqn_agent_rgb():
+
+def train_dqn_agent_rgb(isPlot=False):
     env = flappy_bird_gym.make("FlappyBird-rgb-v0")
     action_dim = env.action_space.n
     agent = DQNAgentRGB(action_dim)
     num_episodes = 1000
     target_update_freq = 10
     batch_size = 512
+
+    rewards = []
+    average_rewards = []
 
     for episode in range(num_episodes):
         state = env.reset()
@@ -119,13 +126,30 @@ def train_dqn_agent_rgb():
             state = next_state
             total_reward += reward
 
+        rewards.append(total_reward)
+
         if episode % target_update_freq == 0:
             agent.update_target_network()
 
-        print(f"Episode {episode + 1}, Total Reward: {total_reward}, Epsilon: {agent.epsilon}")
+        if (episode + 1) % 100 == 0:
+            avg_reward = sum(rewards[-100:]) / 100
+            average_rewards.append(avg_reward)
+            print(f"Episode {episode + 1}, Avg Reward: {avg_reward:.2f}, Epsilon: {agent.epsilon:.3f}")
 
+    agent.save_model()
+
+    if isPlot:
+        plt.plot(range(len(rewards)), rewards, label="Rewards per Episode")
+        plt.plot(range(0, len(rewards), 100), average_rewards, label="Average Reward (100 Episodes)", color="orange")
+        plt.xlabel("Episode")
+        plt.ylabel("Reward")
+        plt.legend()
+        plt.title("Training Rewards")
+        plt.show()
+
+    print(f"Training completed. Final Average Reward: {sum(rewards[-100:]) / 100:.2f}")
     env.close()
 
 
 if __name__ == "__main__":
-    train_dqn_agent_rgb()
+    train_dqn_agent_rgb(isPlot=True)
