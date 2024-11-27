@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 from collections import deque
 from torch.cuda.amp import GradScaler, autocast
 
-class DQNRGB(nn.Module):
+
+class DuelingDQNRGB(nn.Module):
     def __init__(self, action_dim):
-        super(DQNRGB, self).__init__()
+        super(DuelingDQNRGB, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -21,7 +22,8 @@ class DQNRGB(nn.Module):
         self.feature_map_size = self._get_conv_output(self.dummy_input)
 
         self.fc1 = nn.Linear(self.feature_map_size, 512)
-        self.fc2 = nn.Linear(512, action_dim)
+        self.value_stream = nn.Linear(512, 1)
+        self.advantage_stream = nn.Linear(512, action_dim)
 
     def _get_conv_output(self, x):
         x = torch.relu(self.conv1(x))
@@ -35,10 +37,13 @@ class DQNRGB(nn.Module):
         x = torch.relu(self.conv3(x))
         x = x.view(x.size(0), -1)
         x = torch.relu(self.fc1(x))
-        return self.fc2(x)
-        
+        value = self.value_stream(x)
+        advantage = self.advantage_stream(x)
+        return value + advantage - advantage.mean(dim=1, keepdim=True)
+
+
 class DQNAgentRGB:
-    def __init__(self, action_dim, learning_rate=1e-4, gamma=0.99, epsilon_start=1.0, epsilon_min=0.01, epsilon_decay=0.9999):
+    def __init__(self, action_dim, learning_rate=1e-4, gamma=0.99, epsilon_start=1.0, epsilon_min=0.05, epsilon_decay=0.995):
         self.action_dim = action_dim
         self.gamma = gamma
         self.epsilon = epsilon_start
@@ -50,13 +55,16 @@ class DQNAgentRGB:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
 
-        self.policy_net = DQNRGB(action_dim).to(self.device)
-        self.target_net = DQNRGB(action_dim).to(self.device)
+        self.policy_net = DuelingDQNRGB(action_dim).to(self.device)
+        self.target_net = DuelingDQNRGB(action_dim).to(self.device)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
         self.scaler = GradScaler()
+
+        # Tracking the best model
+        self.best_avg_reward = -float('inf')
 
     def preprocess(self, state):
         state = torch.tensor(state, dtype=torch.float32, device=self.device).permute(2, 0, 1) / 255.0
@@ -107,11 +115,20 @@ class DQNAgentRGB:
     def update_target_network(self):
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
-    def save_model(self, folder_path="models"):
+    def save_model(self, folder_path="models", is_best=False):
         os.makedirs(folder_path, exist_ok=True)
         torch.save(self.policy_net.state_dict(), os.path.join(folder_path, "policy_net.pth"))
         torch.save(self.target_net.state_dict(), os.path.join(folder_path, "target_net.pth"))
-        print(f"Models saved in folder: {folder_path}")
+        if is_best:
+            torch.save(self.policy_net.state_dict(), os.path.join(folder_path, "best_policy_net.pth"))
+            print(f"Best model saved in folder: {folder_path}")
+
+    def load_model(self, folder_path="models"):
+        policy_path = os.path.join(folder_path, "best_policy_net.pth")
+        if os.path.exists(policy_path):
+            self.policy_net.load_state_dict(torch.load(policy_path, map_location=self.device))
+            print(f"Loaded best model from {policy_path}")
+
 
 def train_dqn_agent_rgb(isPlot=False, isTraining=True):
     env = flappy_bird_gym.make("FlappyBird-rgb-v0")
@@ -122,14 +139,18 @@ def train_dqn_agent_rgb(isPlot=False, isTraining=True):
     batch_size = 512
 
     rewards = []
-    average_rewards = []
 
-    if isPlot:
-        fig, ax = plt.subplots()
-        ax.set_xlabel("Episode")
-        ax.set_ylabel("Reward")
-        line, = ax.plot([], [], label="Rewards per Episode", color="blue")
-        ax.legend()
+    if not isTraining:
+        agent.load_model()
+        for _ in range(10):  # Play 10 games
+            state = env.reset()
+            done = False
+            while not done:
+                env.render()
+                action = agent.select_action(state)
+                state, _, done, _ = env.step(action)
+        env.close()
+        return
 
     for episode in range(num_episodes):
         print(f"Episode : {episode + 1}")
@@ -138,9 +159,6 @@ def train_dqn_agent_rgb(isPlot=False, isTraining=True):
         total_reward = 0
 
         while not done:
-            if not isTraining:
-                env.render()
-
             action = agent.select_action(state)
             next_state, reward, done, _ = env.step(action)
             clipped_reward = max(min(reward, 1.0), -1.0)
@@ -156,20 +174,15 @@ def train_dqn_agent_rgb(isPlot=False, isTraining=True):
 
         if (episode + 1) % 100 == 0:
             avg_reward = sum(rewards[-100:]) / 100
-            average_rewards.append(avg_reward)
             print(f"Episode {episode + 1}, Avg Reward: {avg_reward:.2f}, Epsilon: {agent.epsilon:.3f}")
 
-            if isPlot:
-                line.set_xdata(range(len(rewards)))
-                line.set_ydata(rewards)
-                ax.relim()
-                ax.autoscale_view()
-                fig.savefig(f"reward_plot_{episode + 1}.png")
+            if avg_reward > agent.best_avg_reward:
+                agent.best_avg_reward = avg_reward
+                agent.save_model(is_best=True)
 
     agent.save_model()
-    print(f"Training completed. Final Average Reward: {sum(rewards[-100:]) / 100:.2f}")
     env.close()
 
 
 if __name__ == "__main__":
-    train_dqn_agent_rgb(isPlot=False, isTraining=False)
+    train_dqn_agent_rgb(isPlot=True, isTraining=True)
