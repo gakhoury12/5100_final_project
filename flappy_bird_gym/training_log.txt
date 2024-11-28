@@ -1,0 +1,9 @@
+Using device: cpu
+Model loaded: models\best.pth
+Episode : 1
+Model saved: models/best.pth
+Episode : 2
+Episode : 3
+Episode : 4
+Episode : 5
+Episode : 6
