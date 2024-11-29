@@ -5,21 +5,31 @@ import torch.nn as nn
 import torch.optim as optim
 import gym
 import flappy_bird_gym
+import matplotlib.pyplot as plt
+import pickle
 from collections import deque
 
+if torch.cuda.is_available():
+    print("CUDA is available. Running on GPU.")
+else:
+    print("CUDA is not available. Running on CPU.")
 
+    
 # DQN Neural Network class
 def create_dqn(input_dim, output_dim):
     return nn.Sequential(
-        nn.Linear(input_dim, 256),
-        nn.ReLU(),
-        nn.Linear(256, 256),
-        nn.ReLU(),
-        nn.Linear(256, output_dim)
+        nn.Linear(input_dim, 512),  # First fully connected layer
+        nn.LeakyReLU(),        
+        nn.Linear(512, 256),
+        nn.LeakyReLU(),
+        nn.Dropout(0.5),
+        nn.Linear(256, 128),
+        nn.LeakyReLU(),
+        nn.Linear(128, output_dim)  # Output layer (Q-values for each action)
     )
 
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, learning_rate=1e-3, gamma=0.99, epsilon_start=1.0, epsilon_min=0.01, epsilon_decay=0.9997):
+    def __init__(self, state_dim, action_dim, learning_rate=1e-4, gamma=0.999, epsilon_start=1.0, epsilon_min=0.01, epsilon_decay=0.9997):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = gamma
@@ -33,7 +43,8 @@ class DQNAgent:
         # Networks
         self.policy_net = create_dqn(state_dim, action_dim)
         self.target_net = create_dqn(state_dim, action_dim)
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
+        self.optimizer = optim.RMSprop(self.policy_net.parameters(), lr=learning_rate)
+
         
         # Synchronize target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -58,11 +69,11 @@ class DQNAgent:
         batch = random.sample(self.replay_buffer, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
         
-        states = torch.FloatTensor(states)
-        actions = torch.LongTensor(actions)
-        rewards = torch.FloatTensor(rewards)
-        next_states = torch.FloatTensor(next_states)
-        dones = torch.FloatTensor(dones)
+        states = torch.FloatTensor(np.array(states))
+        actions = torch.LongTensor(np.array(actions))
+        rewards = torch.FloatTensor(np.array(rewards))
+        next_states = torch.FloatTensor(np.array(next_states))
+        dones = torch.FloatTensor(np.array(dones))
 
         # Calculate target Q-values
         current_q_values = self.policy_net(states).gather(1, actions.view(-1, 1)).squeeze()
@@ -85,13 +96,20 @@ class DQNAgent:
 # Training the DQN Agent
 def train_dqn_agent():
     env = flappy_bird_gym.make("FlappyBird-v0")
+    state = env.reset()
+    print(f"Initial state shape: {state.shape}")
     state_dim = env.observation_space.shape[0]  # Using position information
     action_dim = env.action_space.n
 
     agent = DQNAgent(state_dim, action_dim)
-    num_episodes = 20000
+    num_episodes = 50000
     target_update_freq = 10
     batch_size = 64
+
+    # Variables to track average rewards
+    avg_rewards_100 = []
+    avg_rewards_1000 = []
+    episode_rewards = []
 
     for episode in range(num_episodes):
         state = env.reset()
@@ -100,7 +118,7 @@ def train_dqn_agent():
 
         while not done:
             # Render the environment
-            env.render()
+            # env.render()
 
             # Select action using epsilon-greedy policy
             action = agent.select_action(state)
@@ -114,13 +132,80 @@ def train_dqn_agent():
 
             state = next_state
             total_reward += reward
+        # Store the total reward for the current episode
+        episode_rewards.append(total_reward)
 
         # Update target network
         if episode % target_update_freq == 0:
             agent.update_target_network()
 
-        print(f"Episode {episode + 1}, Total Reward: {total_reward}, Epsilon: {agent.epsilon}")
+        # Calculate and store the average reward every 100 and 1000 episodes
+        if (episode + 1) % 100 == 0:
+            avg_100 = np.mean(episode_rewards[-100:])
+            avg_rewards_100.append(avg_100)
 
+        if (episode + 1) % 1000 == 0:
+            avg_1000 = np.mean(episode_rewards[-1000:])
+            avg_rewards_1000.append(avg_1000)
+
+        # Print progress
+        if (episode + 1) % 100 == 0:
+            print(f"Episode {episode + 1}, Total Reward: {total_reward}, Epsilon: {agent.epsilon}, average:{avg_100}")
+
+    env.close()
+
+    with open('trained_agent_dqn.pkl', 'wb') as f:
+        pickle.dump(agent, f)
+    print("Trained agent saved to 'trained_agent_dqn.pkl'.")
+
+    # Save Plot 1: Average reward every 100 episodes
+    plt.figure(figsize=(12, 6))
+    plt.plot(range(100, num_episodes + 1, 100), avg_rewards_100, label="Average Reward (100 episodes)", color='blue')
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Reward')
+    plt.title('Average Reward Every 100 Episodes')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("dqn_avg_rewards_100.png")  # Save as PNG file
+    print("Plot saved as dqn_avg_rewards_100.png")
+
+    # Save Plot 2: Average reward every 1000 episodes
+    plt.figure(figsize=(12, 6))
+    plt.plot(range(1000, num_episodes + 1, 1000), avg_rewards_1000, label="Average Reward (1000 episodes)", color='red')
+    plt.xlabel('Episodes')
+    plt.ylabel('Average Reward')
+    plt.title('Average Reward Every 1000 Episodes')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("dqn_avg_rewards_1000.png")  # Save as PNG file
+    print("Plot saved as dqn_avg_rewards_1000.png")
+
+
+    # Play the game using the trained model
+def play_game_with_trained_agent():
+    # Load the trained agent from the pickle file
+    with open('trained_agent_dqn.pkl', 'rb') as f:
+        agent = pickle.load(f)
+    
+    env = flappy_bird_gym.make("FlappyBird-v0")
+    state = env.reset()
+    done = False
+    total_reward = 0
+
+    while not done:
+        # Select the best action based on the trained model
+        action = agent.select_action(state)
+        
+        # Step in the environment
+        next_state, reward, done, _ = env.step(action)
+        
+        # Render the environment (optional, but useful for visualizing the agent playing)
+        env.render()
+
+        state = next_state
+        total_reward += reward
+
+    print(f"Total reward from the trained agent: {total_reward}")
     env.close()
 
 

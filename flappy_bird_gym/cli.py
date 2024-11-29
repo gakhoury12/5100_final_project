@@ -60,7 +60,7 @@ def random_agent_env():
     env.reset()
     score = 0
     while True:
-        env.render()
+        # env.render()
 
         # Getting random action:
         action = env.action_space.sample()
@@ -76,7 +76,7 @@ def random_agent_env():
         time.sleep(1 / 30)
 
         if done:
-            env.render()
+            # env.render()
             time.sleep(0.5)
             break
 
