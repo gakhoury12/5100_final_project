@@ -19,8 +19,8 @@ import datetime  # Import datetime for timestamps
 from dqn_agent_rgb import DQNAgentRGB
 from utils import set_seed
 
-def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, batch_size=256,
-                       epsilon_decay=0.995, architecture='original', final_run=False):
+def train_dqn_agent_rgb(trial_number=1, num_episodes=10000, learning_rate=1e-4, batch_size=128,
+                        epsilon_decay=0.995, architecture='original', final_run=False):
     """
     Trains a DQN agent on the Flappy Bird Gym environment.
 
@@ -31,7 +31,7 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
         batch_size (int): Batch size for training.
         epsilon_decay (float): Decay rate for epsilon in epsilon-greedy policy.
         architecture (str): Type of neural network architecture ('original' or 'reduced').
-        final_run (bool): If True, performs the final 10k episode run with adjusted logging.
+        final_run (bool): If True, adjusts logging frequency for the final run.
     """
     # Set random seed for reproducibility
     set_seed(42 + trial_number)
@@ -39,7 +39,7 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
     env = flappy_bird_gym.make("FlappyBird-rgb-v0")
     action_dim = env.action_space.n
     agent = DQNAgentRGB(action_dim, learning_rate=learning_rate, epsilon_decay=epsilon_decay,
-                       architecture=architecture)
+                        architecture=architecture)
     # Uncomment the line below to load a pre-trained model
     # agent.load_model(best=True, trial_number=trial_number)
 
@@ -53,15 +53,10 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
     flaps_list = []
     best_reward = -float('inf')
 
-    # Adjust logging frequency based on whether it's the final run
-    if final_run:
-        log_interval = 20  # Log every 20 episodes
-        summary_interval = 100  # Summarize every 100 episodes
-        save_model_interval = 500  # Save model every 500 episodes
-    else:
-        log_interval = 20  # Log every 20 episodes for shorter trials
-        summary_interval = 100  # Summarize every 100 episodes for shorter trials
-        save_model_interval = 500  # Save model every 500 episodes for shorter trials
+    # Logging frequencies
+    log_interval = 20  # Log every 20 episodes
+    summary_interval = 100  # Summarize every 100 episodes
+    save_model_interval = 500  # Save model every 500 episodes
 
     for episode in range(num_episodes):
         state = env.reset()
@@ -116,7 +111,7 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
         flaps_list.append(flaps)
 
         # Detailed logging per episode
-        if (episode + 1) % log_interval == 0 or final_run:
+        if (episode + 1) % log_interval == 0:
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"[{current_time}] Episode {episode + 1}: Reward: {total_reward:.2f}, Gates Cleared: {total_gates}, "
                   f"Duration: {steps} steps, Flaps: {flaps}, Epsilon: {agent.epsilon:.3f}")
@@ -125,7 +120,7 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
             agent.update_target_network()
 
         # Compute moving averages
-        if (episode + 1) % summary_interval == 0 or final_run:
+        if (episode + 1) % summary_interval == 0:
             avg_reward = sum(rewards[-100:]) / len(rewards[-100:])
             avg_gates = sum(gates_cleared[-100:]) / len(gates_cleared[-100:])
             avg_duration = sum(durations[-100:]) / len(durations[-100:])
@@ -162,8 +157,8 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
             plt.savefig(f"gates_plot_trial_{trial_number}_episode_{episode + 1}.png")
             plt.close()
 
-        # Save model at intervals during the final run
-        if final_run and (episode + 1) % save_model_interval == 0:
+        # Save model at intervals
+        if (episode + 1) % save_model_interval == 0:
             agent.save_model(trial_number=trial_number)
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"[{current_time}] Model saved at Episode {episode + 1}")
@@ -182,69 +177,38 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
     with open(f'training_stats_trial_{trial_number}.json', 'w') as f:
         json.dump(stats, f)
 
-    # Generate final summary plots if it's the final run
-    if final_run:
-        # Plotting rewards
-        plt.figure(figsize=(10, 5))
-        plt.plot(rewards, label="Reward per Episode")
-        plt.xlabel("Episodes")
-        plt.ylabel("Reward")
-        plt.title(f"Final 10k Episode Run Rewards - Trial {trial_number}")
-        plt.legend()
-        plt.savefig(f"final_10k_rewards_trial_{trial_number}.png")
-        plt.close()
+    # Generate final summary plots
+    # Plotting rewards
+    plt.figure(figsize=(10, 5))
+    plt.plot(rewards, label="Reward per Episode")
+    plt.xlabel("Episodes")
+    plt.ylabel("Reward")
+    plt.title(f"Final Training Rewards - Trial {trial_number}")
+    plt.legend()
+    plt.savefig(f"final_rewards_trial_{trial_number}.png")
+    plt.close()
 
-        # Plotting gates cleared
-        plt.figure(figsize=(10, 5))
-        plt.plot(gates_cleared, label="Gates Cleared per Episode", color='orange')
-        plt.xlabel("Episodes")
-        plt.ylabel("Gates Cleared")
-        plt.title(f"Final 10k Episode Run Gates Cleared - Trial {trial_number}")
-        plt.legend()
-        plt.savefig(f"final_10k_gates_trial_{trial_number}.png")
-        plt.close()
+    # Plotting gates cleared
+    plt.figure(figsize=(10, 5))
+    plt.plot(gates_cleared, label="Gates Cleared per Episode", color='orange')
+    plt.xlabel("Episodes")
+    plt.ylabel("Gates Cleared")
+    plt.title(f"Final Gates Cleared Over Episodes - Trial {trial_number}")
+    plt.legend()
+    plt.savefig(f"final_gates_trial_{trial_number}.png")
+    plt.close()
 
 
 if __name__ == '__main__':
-    # Define trial configurations with varying batch sizes only
-    trials = [
-        {'trial_number': 1, 'learning_rate': 1e-4, 'batch_size': 128, 'epsilon_decay': 0.995, 'architecture': 'original'},
-        {'trial_number': 2, 'learning_rate': 1e-4, 'batch_size': 256, 'epsilon_decay': 0.995, 'architecture': 'original'},
-        {'trial_number': 3, 'learning_rate': 1e-4, 'batch_size': 512, 'epsilon_decay': 0.995, 'architecture': 'original'},
-        # Optionally include 1024 after testing feasibility
-        # {'trial_number': 4, 'learning_rate': 1e-4, 'batch_size': 1024, 'epsilon_decay': 0.995, 'architecture': 'original'},
-        # {'trial_number': 5, 'learning_rate': 1e-4, 'batch_size': 2048, 'epsilon_decay': 0.995, 'architecture': 'original'},
-    ]
-
-    # Run shorter trials to find the best hyperparameters
-    for trial in trials:
-        print(f"Starting Trial {trial['trial_number']} with Batch Size {trial['batch_size']}")
-        train_dqn_agent_rgb(
-            trial_number=trial['trial_number'],
-            num_episodes=2000,  # Shorter trials
-            learning_rate=trial['learning_rate'],
-            batch_size=trial['batch_size'],
-            epsilon_decay=trial['epsilon_decay'],
-            architecture=trial['architecture'],
-            final_run=False
-        )
-
-    # After analyzing results, set the best trial number
-    # For demonstration, let's assume trial 3 was the best
-    best_trial_number = 3
-    best_trial = next((trial for trial in trials if trial['trial_number'] == best_trial_number), None)
-
-    if best_trial:
-        print(f"Starting Final 10k Episode Run with Trial {best_trial_number}")
-        print(f"Using Batch Size: {best_trial['batch_size']}")
-        train_dqn_agent_rgb(
-            trial_number=best_trial['trial_number'],
-            num_episodes=10000,  # Final long run
-            learning_rate=best_trial['learning_rate'],
-            batch_size=best_trial['batch_size'],
-            epsilon_decay=best_trial['epsilon_decay'],
-            architecture=best_trial['architecture'],
-            final_run=True
-        )
-    else:
-        print("Best trial configuration not found.")
+    # Run Trial 1 with batch size 128 for 10,000 episodes
+    trial_number = 1
+    print(f"Starting Trial {trial_number} with Batch Size 128 for 10,000 episodes")
+    train_dqn_agent_rgb(
+        trial_number=trial_number,
+        num_episodes=10000,  # Run for 10,000 episodes
+        learning_rate=1e-4,
+        batch_size=128,  # Batch size 128
+        epsilon_decay=0.995,
+        architecture='original',
+        final_run=False  # Set to False to maintain logging frequencies
+    )
