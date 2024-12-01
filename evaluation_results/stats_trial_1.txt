@@ -1,0 +1,4 @@
+Evaluation Results:
+  Average Reward: 233.10 ± 122.56
+  Average Gates Cleared: 3.79 ± 3.32
+  Average Duration: 233.10 ± 122.56
