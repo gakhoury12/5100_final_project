@@ -217,8 +217,5 @@ if __name__ == '__main__':
     #     unbuffered_f = Unbuffered(f)  # Wrap the file in an unbuffered wrapper
     #     with contextlib.redirect_stdout(unbuffered_f):
     train_dqn_agent_rgb(True, True)
-        # Convert the state to a numpy array, resize using OpenCV, and normalize
-        state = cv2.resize(state, (64, 64))  # Resize using OpenCV to 64x64
-            if not isTraining:
-                env.render()
+     
 
