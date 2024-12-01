@@ -8,6 +8,7 @@ import flappy_bird_gym
 import matplotlib.pyplot as plt
 import pickle
 from collections import deque
+import os
 
 if torch.cuda.is_available():
     print("CUDA is available. Running on GPU.")
@@ -94,15 +95,23 @@ class DQNAgent:
 
 # Training the DQN Agent
 # Training the DQN Agent
-def train_dqn_agent():
+def train_dqn_agent(resume_training=False, pickle_file='trained_agent_dqn.pkl'):
     env = flappy_bird_gym.make("FlappyBird-v0")
     state = env.reset()
     print(f"Initial state shape: {state.shape}")
     state_dim = env.observation_space.shape[0]  # Using position information
     action_dim = env.action_space.n
 
-    agent = DQNAgent(state_dim, action_dim)
-    num_episodes = 50000
+    print(resume_training)
+    print(os.path.exists(pickle_file))
+    if resume_training and os.path.exists(pickle_file):
+        with open(pickle_file, 'rb') as f:
+            agent = pickle.load(f)
+        print("Loaded agent from pickle file.")
+    else:
+        agent = DQNAgent(state_dim, action_dim)
+        print("Initialized new agent.")
+    num_episodes = 10000
     target_update_freq = 10
     batch_size = 64
 
@@ -154,9 +163,9 @@ def train_dqn_agent():
 
     env.close()
 
-    with open('trained_agent_dqn.pkl', 'wb') as f:
+    with open('trained_agent_dqn_2.pkl', 'wb') as f:
         pickle.dump(agent, f)
-    print("Trained agent saved to 'trained_agent_dqn.pkl'.")
+    print("Trained agent saved to 'trained_agent_dqn_2.pkl'.")
 
     # Save Plot 1: Average reward every 100 episodes
     plt.figure(figsize=(12, 6))
@@ -184,7 +193,7 @@ def train_dqn_agent():
     # Play the game using the trained model
 def play_game_with_trained_agent():
     # Load the trained agent from the pickle file
-    with open('trained_agent_dqn.pkl', 'rb') as f:
+    with open('trained_agent_dqn_1.pkl', 'rb') as f:
         agent = pickle.load(f)
     
     env = flappy_bird_gym.make("FlappyBird-v0")
@@ -210,4 +219,4 @@ def play_game_with_trained_agent():
 
 
 if __name__ == "__main__":
-    train_dqn_agent()
+    train_dqn_agent(resume_training=True)

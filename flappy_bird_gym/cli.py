@@ -88,7 +88,7 @@ def main():
     elif args.mode == "random":
         random_agent_env()
     elif args.mode == "dqn":
-        train_dqn_agent()
+        train_dqn_agent(resume_training=True)
     elif args.mode == "dqn_rgb":
         train_dqn_agent_rgb()
     else:
