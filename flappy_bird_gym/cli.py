@@ -15,11 +15,9 @@ from torch.cuda.amp import GradScaler, autocast
 import cv2
 import numpy as np
 import json
+import datetime  # Import datetime for timestamps
 from dqn_agent_rgb import DQNAgentRGB
 from utils import set_seed
-import datetime
-
-
 
 def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, batch_size=256,
                        epsilon_decay=0.995, architecture='original', final_run=False):
@@ -55,16 +53,21 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
     flaps_list = []
     best_reward = -float('inf')
 
-    # Adjust logging frequency
-    log_interval = 20
-    summary_interval = 100
-    save_model_interval = 500
+    # Adjust logging frequency based on whether it's the final run
+    if final_run:
+        log_interval = 20  # Log every 20 episodes
+        summary_interval = 100  # Summarize every 100 episodes
+        save_model_interval = 500  # Save model every 500 episodes
+    else:
+        log_interval = 20  # Log every 20 episodes for shorter trials
+        summary_interval = 100  # Summarize every 100 episodes for shorter trials
+        save_model_interval = 500  # Save model every 500 episodes for shorter trials
 
     for episode in range(num_episodes):
         state = env.reset()
         done = False
         total_reward = 0
-        total_gates = 0
+        total_gates = 0  # Reset at the start of each episode
         steps = 0
         flaps = 0
 
@@ -73,7 +76,7 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
             # env.render()
 
             action = agent.select_action(state)
-            next_state, reward, done, info = env.step(action)
+            next_state, original_reward, done, info = env.step(action)
 
             # Count flaps (assuming action '1' corresponds to a flap)
             if action == 1:
@@ -82,15 +85,24 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
             # Increment steps
             steps += 1
 
-            # Check for passing a pipe (gate cleared)
-            if 'score' in info and info['score'] > total_gates:
-                total_gates = info['score']
+            # Survival reward
+            survival_reward = 1  # Small positive reward per time step
 
-            # Adaptive reward scaling
-            reward = 0.1  # Small positive reward for each time step
-            if done:
-                reward = -1.0  # Negative reward upon death
+            # Check if a gate was cleared
+            current_score = info.get('score', 0)
+            if current_score > total_gates:
+                gate_reward = 101  # Reward for gate cleared
+                total_gates = current_score
+            else:
+                gate_reward = 0
 
+            # Death penalty
+            death_penalty = -100 if done else 0
+
+            # Total reward
+            reward = survival_reward + gate_reward + death_penalty
+
+            # Store transition and train agent
             agent.store_transition(state, action, reward, next_state, done)
             beta = min(1.0, beta_start + episode * (1.0 - beta_start) / beta_frames)
             agent.train(batch_size=batch_size, beta=beta)
@@ -105,8 +117,10 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
 
         # Detailed logging per episode
         if (episode + 1) % log_interval == 0 or final_run:
-            print(f"Episode {episode + 1}: Reward: {total_reward:.2f}, Gates Cleared: {total_gates}, "
-                f"Duration: {steps} steps, Flaps: {flaps}, Epsilon: {agent.epsilon:.3f}")
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"[{current_time}] Episode {episode + 1}: Reward: {total_reward:.2f}, Gates Cleared: {total_gates}, "
+                  f"Duration: {steps} steps, Flaps: {flaps}, Epsilon: {agent.epsilon:.3f}")
+
         if (episode + 1) % target_update_freq == 0:
             agent.update_target_network()
 
@@ -119,6 +133,14 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
             if avg_reward > best_reward:
                 best_reward = avg_reward
                 agent.save_model(best=True, trial_number=trial_number)
+
+            # Add timestamp to summary
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"[{current_time}] Episode {episode + 1} Summary:")
+            print(f"  Average Reward (last 100 episodes): {avg_reward:.2f}")
+            print(f"  Average Gates Cleared (last 100 episodes): {avg_gates:.2f}")
+            print(f"  Average Duration (last 100 episodes): {avg_duration:.2f} steps")
+            print(f"  Epsilon: {agent.epsilon:.3f}")
 
             # Plotting rewards
             plt.figure(figsize=(10, 5))
@@ -140,16 +162,11 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
             plt.savefig(f"gates_plot_trial_{trial_number}_episode_{episode + 1}.png")
             plt.close()
 
-            # Summary logging
-            print(f"Episode {episode + 1} Summary:")
-            print(f"  Average Reward (last 100 episodes): {avg_reward:.2f}")
-            print(f"  Average Gates Cleared (last 100 episodes): {avg_gates:.2f}")
-            print(f"  Average Duration (last 100 episodes): {avg_duration:.2f} steps")
-            print(f"  Epsilon: {agent.epsilon:.3f}")
-
         # Save model at intervals during the final run
         if final_run and (episode + 1) % save_model_interval == 0:
             agent.save_model(trial_number=trial_number)
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"[{current_time}] Model saved at Episode {episode + 1}")
 
     # Save final model
     agent.save_model(trial_number=trial_number)
@@ -189,18 +206,19 @@ def train_dqn_agent_rgb(trial_number=1, num_episodes=2000, learning_rate=1e-4, b
 
 
 if __name__ == '__main__':
-    # Define trial configurations
+    # Define trial configurations with varying batch sizes only
     trials = [
-        {'trial_number': 1, 'learning_rate': 1e-4, 'batch_size': 256, 'epsilon_decay': 0.995, 'architecture': 'original'},
-        {'trial_number': 2, 'learning_rate': 5e-5, 'batch_size': 256, 'epsilon_decay': 0.995, 'architecture': 'reduced'},
-        {'trial_number': 3, 'learning_rate': 1e-4, 'batch_size': 512, 'epsilon_decay': 0.990, 'architecture': 'original'},
-        {'trial_number': 4, 'learning_rate': 5e-5, 'batch_size': 128, 'epsilon_decay': 0.990, 'architecture': 'reduced'},
-        {'trial_number': 5, 'learning_rate': 1e-5, 'batch_size': 256, 'epsilon_decay': 0.985, 'architecture': 'original'},
+        {'trial_number': 1, 'learning_rate': 1e-4, 'batch_size': 128, 'epsilon_decay': 0.995, 'architecture': 'original'},
+        {'trial_number': 2, 'learning_rate': 1e-4, 'batch_size': 256, 'epsilon_decay': 0.995, 'architecture': 'original'},
+        {'trial_number': 3, 'learning_rate': 1e-4, 'batch_size': 512, 'epsilon_decay': 0.995, 'architecture': 'original'},
+        # Optionally include 1024 after testing feasibility
+        # {'trial_number': 4, 'learning_rate': 1e-4, 'batch_size': 1024, 'epsilon_decay': 0.995, 'architecture': 'original'},
+        # {'trial_number': 5, 'learning_rate': 1e-4, 'batch_size': 2048, 'epsilon_decay': 0.995, 'architecture': 'original'},
     ]
 
     # Run shorter trials to find the best hyperparameters
     for trial in trials:
-        print(f"Starting Trial {trial['trial_number']}")
+        print(f"Starting Trial {trial['trial_number']} with Batch Size {trial['batch_size']}")
         train_dqn_agent_rgb(
             trial_number=trial['trial_number'],
             num_episodes=2000,  # Shorter trials
@@ -218,6 +236,7 @@ if __name__ == '__main__':
 
     if best_trial:
         print(f"Starting Final 10k Episode Run with Trial {best_trial_number}")
+        print(f"Using Batch Size: {best_trial['batch_size']}")
         train_dqn_agent_rgb(
             trial_number=best_trial['trial_number'],
             num_episodes=10000,  # Final long run

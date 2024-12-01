@@ -181,8 +181,8 @@ if __name__ == '__main__':
         {'trial_number': 1, 'learning_rate': 1e-4, 'batch_size': 256, 'epsilon_decay': 0.995, 'architecture': 'original'},
         {'trial_number': 2, 'learning_rate': 5e-5, 'batch_size': 256, 'epsilon_decay': 0.995, 'architecture': 'reduced'},
         {'trial_number': 3, 'learning_rate': 1e-4, 'batch_size': 512, 'epsilon_decay': 0.990, 'architecture': 'original'},
-        {'trial_number': 4, 'learning_rate': 5e-5, 'batch_size': 128, 'epsilon_decay': 0.990, 'architecture': 'reduced'},
-        {'trial_number': 5, 'learning_rate': 1e-5, 'batch_size': 256, 'epsilon_decay': 0.985, 'architecture': 'original'},
+        #{'trial_number': 4, 'learning_rate': 5e-5, 'batch_size': 128, 'epsilon_decay': 0.990, 'architecture': 'reduced'},
+        #{'trial_number': 5, 'learning_rate': 1e-5, 'batch_size': 256, 'epsilon_decay': 0.985, 'architecture': 'original'},
     ]
 
     # Run shorter trials to find the best hyperparameters
