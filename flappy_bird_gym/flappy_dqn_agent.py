@@ -30,7 +30,7 @@ def create_dqn(input_dim, output_dim):
     """
     return nn.Sequential(
         nn.Linear(input_dim, 512),  # First fully connected layer
-        nn.LeakyReLU(),        
+        nn.LeakyReLU(),
         nn.Linear(512, 256),
         nn.LeakyReLU(),
         nn.Dropout(0.5),
@@ -154,7 +154,7 @@ def play_game_with_trained_agent():
     # Load the trained agent from the pickle file
     with open('trained_agent_dqn_1.pkl', 'rb') as f:
         agent = pickle.load(f)
-    
+
     env = flappy_bird_gym.make("FlappyBird-v0")
     state = env.reset()
     done = False
@@ -163,10 +163,10 @@ def play_game_with_trained_agent():
     while not done:
         # Select the best action based on the trained model
         action = agent.select_action(state)
-        
+
         # Step in the environment
         next_state, reward, done, _ = env.step(action)
-        
+
         # Render the environment (optional, but useful for visualizing the agent playing)
         env.render()
 
