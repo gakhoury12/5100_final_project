@@ -5,15 +5,13 @@ import sys
 import matplotlib.pyplot as plt
 import flappy_bird_gym
 
-import dill
-
 def load_pkl_model(file_path):
     try:
         # Monkey-patch numpy._core if necessary
         sys.modules['numpy._core'] = numpy.core
 
         with open(file_path, 'rb') as f:
-            model = dill.load(f)
+            model = pickle.load(f)
         return model
     except Exception as e:
         print(f"Failed to load model {file_path}: {e}")
@@ -43,7 +41,7 @@ def evaluate_pkl_model(model, env, num_episodes=500):
 
         while not done:
             try:
-                action = model(state)  # Assuming .pkl model is callable
+                action = model.select_action(state)  # Assuming .pkl model is callable
                 state, reward, done, info = env.step(action)
                 total_reward += reward
                 total_gates = info.get("score", total_gates)
