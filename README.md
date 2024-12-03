@@ -1,83 +1,53 @@
-## Flappy Bird for OpenAI Gym
+# Flappy Bird DQN Agent
 
-![Python versions](https://img.shields.io/pypi/pyversions/flappy-bird-gym)
-[![PyPI](https://img.shields.io/pypi/v/flappy-bird-gym)](https://pypi.org/project/flappy-bird-gym/)
-[![License](https://img.shields.io/github/license/Talendar/flappy-bird-gym)](https://github.com/Talendar/flappy-bird-gym/blob/master/LICENSE)
+## 1. Short Description
+This project implements Deep Q-Learning (DQN) to train an agent to play Flappy Bird. The agent is designed to learn through reinforcement learning techniques, navigating a dynamic environment to maximize its survival and score. Two models are implemented to compare performance and adaptability.
 
-This repository contains the implementation of two OpenAI Gym environments for
-the Flappy Bird game. The implementation of the game's logic and graphics was
-based on the [FlapPyBird](https://github.com/sourabhv/FlapPyBird) project, by
-[@sourabhv](https://github.com/sourabhv). 
+---
 
-The two environments differ only on the type of observations they yield for the
-agents. The "FlappyBird-rgb-v0" environment, yields RGB-arrays (images)
-representing the game's screen. The "FlappyBird-v0" environment, on the other
-hand, yields simple numerical information about the game's state as
-observations. The yielded attributes are the:
+## 2. Types of Models Implemented
+### 1. **Positional Model**  
+   - Utilizes positional data from the game environment.  
+   - Reward system: Positive for survival, negative for collisions.  
+   - Optimization: Uses RMSProp with MSE loss.  
 
-* horizontal distance to the next pipe;
-* difference between the player's y position and the next hole's y position.
+### 2. **RGB Model**  
+   - Processes RGB frames of the game environment.  
+   - Reward system: Positive for survival, negative for collisions.  
+   - Optimization: Updates target and policy networks every 10 episodes.  
 
-<br>
+---
 
-<p align="center">
-  <img align="center" 
-       src="https://github.com/Talendar/flappy-bird-gym/blob/main/imgs/yellow_bird_playing.gif?raw=true" 
-       width="200"/>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img align="center" 
-       src="https://github.com/Talendar/flappy-bird-gym/blob/main/imgs/red_bird_start_screen.gif?raw=true" 
-       width="200"/>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img align="center" 
-       src="https://github.com/Talendar/flappy-bird-gym/blob/main/imgs/blue_bird_playing.gif?raw=true" 
-       width="200"/>
-</p>
+## 3. Setup
 
-## Installation
+1. **Create and activate a virtual environment**  
+   ```bash
+   python -m venv flappy_env_3
+   source flappy_env_3/bin/activate  # For Linux/Mac
+   flappy_env_3\Scripts\activate     # For Windows
+   ```
 
-To install `flappy-bird-gym`, simply run the following command:
+2. **Add the project path to PYTHONPATH**  
+   ```bash
+   set PYTHONPATH=...\5100_final_project\flappy_bird_gym  # For Windows
+   export PYTHONPATH=...\5100_final_project\flappy_bird_gym  # For Linux/Mac
+   ```
 
-    $ pip install flappy-bird-gym
-    
-## Usage
+3. **Run the Positional Model**  
+   ```bash
+   python flappy_dqn_agent.py
+   ```
 
-Like with other `gym` environments, it's very easy to use `flappy-bird-gym`.
-Simply import the package and create the environment with the `make` function.
-Take a look at the sample code below:
+4. **Run the RGB Model**  
+   ```bash
+   python flappy_dqn_rgb.py
+   ```
 
-```
-import time
-import flappy_bird_gym
-env = flappy_bird_gym.make("FlappyBird-v0")
+---
 
-obs = env.reset()
-while True:
-    # Next action:
-    # (feed the observation to your agent here)
-    action = ...  # env.action_space.sample() for a random action
-
-    # Processing:
-    obs, reward, done, info = env.step(action)
-    
-    # Rendering the game:
-    # (remove this two lines during training)
-    env.render()
-    time.sleep(1 / 30)  # FPS
-    
-    # Checking if the player is still alive
-    if done:
-        break
-
-env.close()
-```
-
-## Playing
-
-To play the game (human mode), run the following command:
-
-    $ flappy_bird_gym
-    
-To see a random agent playing, add an argument to the command:
-
-    $ flappy_bird_gym --mode random
+## 4. Authors
+- Mehul  
+- Likhith  
+- Gabriel  
+- Navya  
+- Fuhan  
