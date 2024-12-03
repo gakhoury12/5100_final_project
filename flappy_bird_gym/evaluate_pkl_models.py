@@ -108,7 +108,7 @@ def plot_results(rewards, gates_cleared, model_name, output_folder, num_episodes
     plt.close()
 
 # Main function for evaluating all .pkl models
-def evaluate_all_pkl_models(folder_path="final_models", output_folder="output_results", num_episodes=500):
+def evaluate_all_pkl_models(folder_path="final_models", output_folder="positional_results", num_episodes=500):
     """
     Evaluate all .pkl models in a folder and generate performance graphs.
     """
@@ -137,4 +137,4 @@ def evaluate_all_pkl_models(folder_path="final_models", output_folder="output_re
     env.close()
 
 if __name__ == "__main__":
-    evaluate_all_pkl_models(folder_path="final_models", output_folder="output_results", num_episodes=500)
+    evaluate_all_pkl_models(folder_path="final_models", output_folder="positional_results", num_episodes=500)

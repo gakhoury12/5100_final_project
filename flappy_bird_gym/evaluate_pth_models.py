@@ -53,7 +53,7 @@ def evaluate_model_stats(model, env, num_episodes=500, is_rgb_model=True):
     return rewards, gates_cleared
 
 # Main evaluation script
-def evaluate_all_models(folder_path="final_models", output_folder="output_results", num_episodes=500):
+def evaluate_all_models(folder_path="final_models", output_folder="positional_results", num_episodes=500):
     """
     Evaluate all models in the specified folder and generate performance graphs.
     """
@@ -120,4 +120,4 @@ def evaluate_all_models(folder_path="final_models", output_folder="output_result
     env.close()
 
 if __name__ == "__main__":
-    evaluate_all_models(folder_path="final_models", output_folder="output_results", num_episodes=500)
+    evaluate_all_models(folder_path="final_models", output_folder="positional_results", num_episodes=500)
