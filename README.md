@@ -28,6 +28,9 @@ This project implements Deep Q-Learning (DQN) to train an agent to play Flappy B
    ```
 
 2. **Add the project path to PYTHONPATH**  
+<mark>To ensure the project is accessible as a module, add the project path to the PYTHONPATH environment variable. Replace ...\5100_final_project\flappy_bird_gym with your project's complete path.</mark>
+
+   For example:
    ```bash
    set PYTHONPATH=...\5100_final_project\flappy_bird_gym  # For Windows
    export PYTHONPATH=...\5100_final_project\flappy_bird_gym  # For Linux/Mac
